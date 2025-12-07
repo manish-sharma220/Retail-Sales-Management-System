@@ -1,0 +1,28 @@
+{
+  "name": "retail-sales-backend",
+  "version": "1.0.0",
+  "description": "Backend API for retail sales management",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "seed": "node src/utils/seedData.js"
+  },
+  "keywords": [
+    "retail",
+    "sales",
+    "api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2",
+    "mongoose": "^8.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
