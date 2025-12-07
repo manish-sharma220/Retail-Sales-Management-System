@@ -6,15 +6,14 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
-    "seed": "node src/utils/seedData.js"
+    "dev": "nodemon src/index.js"
   },
   "keywords": [
     "retail",
     "sales",
     "api"
   ],
-  "author": "",
+  "author": "Manish Sharma",
   "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",
