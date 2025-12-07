@@ -2,115 +2,100 @@
 
 ## Backend Architecture
 
-### Overview
-The backend follows a layered architecture pattern with clear separation of concerns. Each layer has specific responsibilities and communicates through well-defined interfaces.
+### How it's organized
 
-### Layer Structure
+I split the backend into layers so each part has one job. Controllers handle requests, services do the business logic, and models define the data structure. This makes testing easier and keeps things from getting messy.
 
-**Controllers Layer** (`src/controllers/`)
-Handles HTTP request/response cycle. Extracts query parameters, validates input, calls service layer methods, and formats responses. No business logic resides here.
+### The layers
 
-**Services Layer** (`src/services/`)
-Contains all business logic for data processing. Constructs database queries based on filter parameters, handles pagination calculations, and manages data transformations. This layer is framework-agnostic and can be tested independently.
+**Controllers** (`src/controllers/`)  
+These grab data from requests, validate it, call the right service methods, and send back responses. I keep all the HTTP stuff here - status codes, error formatting, that kind of thing.
 
-**Models Layer** (`src/models/`)
-Defines MongoDB schemas using Mongoose. Includes field validations, indexes for query optimization, and data structure definitions. The Sale model encompasses all customer, product, and operational fields.
+**Services** (`src/services/`)  
+This is where the actual work happens. The service layer builds database queries, handles pagination math, and processes data. I made it independent of Express so I could test it without spinning up a server.
 
-**Routes Layer** (`src/routes/`)
-Maps HTTP endpoints to controller methods. Defines API structure and request routing logic.
+**Models** (`src/models/`)  
+Mongoose schemas that define what sales records look like. I added indexes on fields that get queried a lot (customer name, phone, date, region, category) to keep things fast.
 
-**Utils Layer** (`src/utils/`)
-Provides reusable utility functions for validation, data seeding, and helper operations.
+**Routes** (`src/routes/`)  
+Just maps URLs to controller methods. Pretty straightforward.
 
-### Query Construction Strategy
+**Utils** (`src/utils/`)  
+Helper stuff like validation functions and the database seeding script.
 
-The service layer builds MongoDB queries dynamically based on active filters. Each filter type is handled independently:
+### How queries work
 
-- Text search uses regex with case-insensitive flag across multiple fields
-- Multi-select filters use `$in` operator for array matching
-- Range filters (age, date) use `$gte` and `$lte` operators
-- All conditions are combined using MongoDB's implicit AND logic
+When filters come in, the service builds a MongoDB query object piece by piece. Text search uses regex with the 'i' flag for case-insensitive matching. Multi-select filters use MongoDB's `$in` operator. Range filters (age, dates) use `$gte` and `$lte`. Everything combines with AND logic automatically.
 
-Indexes are strategically placed on frequently queried fields (customerName, phoneNumber, date, customerRegion, productCategory, tags) to maintain query performance.
+I put indexes on the fields that get searched and filtered most. Without them, queries would slow down as data grows.
 
-### Sorting Implementation
+### Sorting approach
 
-Sorting happens at the database level before pagination is applied. The service layer maps frontend sort field names to actual database field names and applies ascending or descending order. This ensures consistent results and leverages database optimization.
+Sorting happens in the database before pagination. I map the frontend field names (like 'customer') to actual database fields (like 'customerName') and apply the sort direction. This way MongoDB handles it efficiently instead of sorting in Node.
 
-### Pagination Strategy
+### Pagination strategy
 
-Pagination uses MongoDB's skip and limit methods. The service calculates skip count based on page number and fixed page size (10 items). Total record count is fetched separately to calculate total pages. This approach scales well with large datasets.
+Using skip and limit from MongoDB. Calculate how many records to skip based on page number (page 3 means skip 20 records if showing 10 per page). I also count total records separately to figure out how many pages there are. Works well even with thousands of records.
 
 ## Frontend Architecture
 
-### Overview
-The frontend is built with React using a component-based architecture. State management relies on React hooks without external libraries, keeping the bundle size minimal.
+### Component structure
 
-### Component Structure
+Built with React hooks - no Redux or anything extra. The main page component holds all the state and passes it down to smaller components.
 
-**Pages** (`src/pages/`)
-Top-level components that represent full views. The SalesListPage manages all state for search, filters, sorting, and pagination. It orchestrates data fetching and passes props to child components.
+**Pages** (`src/pages/`)  
+SalesListPage is the main one. It manages state for search, filters, sorting, and pagination. Fetches data when anything changes and coordinates all the child components.
 
-**Components** (`src/components/`)
-Reusable UI components with single responsibilities:
-- SearchBar: Handles text input with debouncing
-- FilterPanel: Renders all filter controls and manages filter state
-- SalesTable: Displays data in tabular format with sort controls
-- Pagination: Provides page navigation controls
+**Components** (`src/components/`)  
+Broke the UI into reusable pieces:
+- SearchBar: text input with debouncing
+- FilterPanel: all the filter controls in a sidebar
+- SalesTable: displays data with sortable columns
+- Pagination: page navigation buttons
 
-**Services** (`src/services/`)
-API communication layer using Axios. Wraps HTTP requests and handles response/error formatting. The saleService provides methods for fetching sales data and filter options.
+**Services** (`src/services/`)  
+Axios wrapper for API calls. Keeps the HTTP logic separate from components.
 
-**Hooks** (`src/hooks/`)
-Custom React hooks for reusable logic. The useDebounce hook delays API calls during rapid user input, reducing unnecessary network requests.
+**Hooks** (`src/hooks/`)  
+Custom hook for debouncing. Delays the search API call until the user stops typing for 500ms.
 
-**Utils** (`src/utils/`)
-Helper functions for data formatting (currency, dates) and other utility operations.
+**Utils** (`src/utils/`)  
+Functions for formatting currency and dates consistently.
 
-**Styles** (`src/styles/`)
-Global CSS with component-specific styling. Uses a clean, minimal design approach with responsive breakpoints.
+**Styles** (`src/styles/`)  
+One global CSS file. Kept it simple with a clean design and responsive breakpoints.
 
-### State Management
+### State management
 
-The SalesListPage component maintains local state for:
-- Search term (debounced before API call)
-- Filter values (object with all filter fields)
+SalesListPage tracks everything locally:
+- Search term (gets debounced before API call)
+- Filter object with all active filters
 - Sort field and direction
 - Current page number
-- Fetched sales data and pagination metadata
+- Sales data and pagination info from API
 
-State updates trigger useEffect hooks that fetch new data from the API. All query parameters are passed to the backend, keeping the frontend lightweight.
+When state changes, useEffect triggers a new API call. All the query params get sent to the backend.
 
-### Data Flow
+### Data flow
 
-1. User interacts with search, filter, or sort controls
-2. Component state updates
-3. useEffect detects state change
-4. API request is made with current state as query parameters
-5. Backend processes request and returns filtered/sorted data
-6. Component updates with new data
-7. UI re-renders to show results
+User types or clicks something → State updates → useEffect runs → API call with current state → Backend processes → Response comes back → State updates → UI re-renders
 
-This unidirectional data flow makes the application predictable and easy to debug.
+Keeping it unidirectional makes debugging way easier.
 
-## Data Flow
+## How data moves through the system
 
-### Request Flow
-```
-User Input → Component State → API Service → Backend Route → Controller → Service → Database
-```
+**Request path:**  
+User input → Component state → API service → Backend route → Controller → Service → Database
 
-### Response Flow
-```
-Database → Service → Controller → API Response → Frontend Service → Component State → UI Update
-```
+**Response path:**  
+Database → Service → Controller → API response → Frontend service → Component state → UI
 
-### Filter Processing
-All filtering logic executes on the backend. The frontend only collects filter values and sends them as query parameters. This ensures:
-- Consistent results regardless of client-side state
+**Filter processing:**  
+All filtering happens on the backend. Frontend just collects filter values and sends them as query params. This means:
+- Results are consistent no matter what
 - Better performance with large datasets
-- Single source of truth for business logic
-- Easier testing and maintenance
+- Business logic lives in one place
+- Easier to test
 
 ## Folder Structure
 
@@ -118,128 +103,87 @@ All filtering logic executes on the backend. The frontend only collects filter v
 root/
 ├── backend/
 │   ├── src/
-│   │   ├── controllers/      # HTTP request handlers
-│   │   ├── services/          # Business logic layer
+│   │   ├── controllers/      # Request handlers
+│   │   ├── services/          # Business logic
 │   │   ├── models/            # Database schemas
-│   │   ├── routes/            # API endpoint definitions
-│   │   ├── utils/             # Helper functions
-│   │   └── index.js           # Application entry point
-│   ├── package.json
-│   └── .env
+│   │   ├── routes/            # API endpoints
+│   │   ├── utils/             # Helpers
+│   │   └── index.js           # Entry point
+│   └── package.json
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── components/        # Reusable UI components
-│   │   ├── pages/             # Page-level components
-│   │   ├── services/          # API communication
-│   │   ├── hooks/             # Custom React hooks
-│   │   ├── utils/             # Utility functions
-│   │   ├── styles/            # CSS files
-│   │   ├── routes/            # React Router setup
-│   │   ├── App.jsx            # Root component
-│   │   └── main.jsx           # Application entry
-│   ├── package.json
-│   └── index.html
+│   │   ├── components/        # UI components
+│   │   ├── pages/             # Page components
+│   │   ├── services/          # API calls
+│   │   ├── hooks/             # Custom hooks
+│   │   ├── utils/             # Helpers
+│   │   ├── styles/            # CSS
+│   │   ├── routes/            # Router setup
+│   │   └── main.jsx           # Entry point
+│   └── package.json
 │
 └── docs/
-    └── architecture.md        # This file
+    └── architecture.md
 ```
 
-## Module Responsibilities
+## What each module does
 
-### Backend Modules
+### Backend
 
-**saleController.js**
-- Extracts and validates request parameters
-- Calls appropriate service methods
-- Formats success/error responses
-- Handles HTTP status codes
+**saleController.js**  
+Pulls data from requests, validates it, calls service methods, formats responses. Handles HTTP status codes and error messages.
 
-**saleService.js**
-- Builds MongoDB query conditions from filters
-- Determines sort criteria
-- Executes database queries with pagination
-- Calculates pagination metadata
-- Provides filter options for dropdowns
+**saleService.js**  
+Builds MongoDB queries from filter params, executes queries with pagination, calculates page metadata, fetches filter options for dropdowns.
 
-**Sale.js (Model)**
-- Defines data schema and validation rules
-- Creates database indexes
-- Exports Mongoose model
+**Sale.js**  
+Defines the data schema, validation rules, and indexes.
 
-**saleRoutes.js**
-- Maps HTTP methods and paths to controllers
-- Defines API endpoint structure
+**saleRoutes.js**  
+Maps HTTP methods and paths to controllers.
 
-**validation.js**
-- Validates sale data before database insertion
-- Checks required fields and data types
-- Returns validation errors
+**validation.js**  
+Checks if sale data is valid before saving. Returns error messages for missing or invalid fields.
 
-### Frontend Modules
+### Frontend
 
-**SalesListPage.jsx**
-- Manages application state
-- Fetches data from API
-- Handles user interactions
-- Coordinates child components
+**SalesListPage.jsx**  
+Main component that holds state, fetches data, handles user interactions, coordinates everything.
 
-**SearchBar.jsx**
-- Renders search input
-- Emits search value changes to parent
+**SearchBar.jsx**  
+Text input that emits changes to parent.
 
-**FilterPanel.jsx**
-- Displays all filter controls
-- Manages filter state
-- Provides clear filters functionality
+**FilterPanel.jsx**  
+Sidebar with all filter controls. Fetches available options from API and manages multi-select state.
 
-**SalesTable.jsx**
-- Renders sales data in table format
-- Handles column sorting
-- Shows empty state when no results
+**SalesTable.jsx**  
+Renders data in a table. Handles column sorting clicks. Shows empty state when no results.
 
-**Pagination.jsx**
-- Displays page navigation controls
-- Calculates visible page numbers
-- Emits page change events
+**Pagination.jsx**  
+Page navigation with previous/next and numbered buttons. Calculates which page numbers to show.
 
-**saleService.js**
-- Wraps Axios HTTP requests
-- Constructs query parameters
-- Handles API responses and errors
+**saleService.js**  
+Wraps API calls, builds query params, handles errors.
 
-**useDebounce.js**
-- Delays value updates
-- Prevents excessive API calls
-- Improves user experience
+**useDebounce.js**  
+Delays value updates to reduce API calls.
 
-**formatters.js**
-- Formats currency values
-- Formats date/time displays
-- Provides consistent data presentation
+**formatters.js**  
+Formats currency and dates for display.
 
-## Performance Considerations
+## Performance stuff
 
-- Database indexes on frequently queried fields
-- Pagination limits result set size
-- Debouncing reduces API call frequency
-- Backend handles all heavy processing
-- Lean queries return only necessary fields
-- Connection pooling for database efficiency
+- Indexes on frequently queried fields
+- Pagination limits result size to 10
+- Debouncing reduces API calls
+- Backend does heavy lifting
+- Lean queries return only needed fields
 
-## Error Handling
+## Error handling
 
-- Backend catches and logs all errors
-- Appropriate HTTP status codes returned
-- Frontend displays user-friendly error messages
-- Validation errors shown before API calls
-- Network errors handled gracefully
+Backend catches errors and returns appropriate status codes. Frontend shows user-friendly messages. Validation happens before API calls when possible.
 
-## Scalability
+## Scaling considerations
 
-The architecture supports horizontal scaling:
-- Stateless backend can run multiple instances
-- Database queries optimized with indexes
-- Frontend served from CDN
-- API responses cacheable where appropriate
-- Separation of concerns allows independent scaling
+The architecture can scale horizontally since the backend is stateless. Database queries are optimized with indexes. Frontend can be served from a CDN. Each layer can scale independently if needed.

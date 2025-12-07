@@ -1,64 +1,64 @@
 # Retail Sales Management System
 
-A full-stack web application for managing retail sales data with advanced search, filtering, sorting, and pagination capabilities. Built to handle comprehensive sales records with customer, product, and operational data.
+A web app I built for managing retail sales transactions. It lets you search through sales records, apply multiple filters, sort data, and navigate through pages easily.
 
 ## Tech Stack
 
 **Frontend:** React 18, Vite, React Router, Axios  
-**Backend:** Node.js, Express.js, MongoDB, Mongoose  
-**Deployment:** Vercel (Frontend), Render (Backend), MongoDB Atlas (Database)
+**Backend:** Node.js, Express, MongoDB, Mongoose  
+**Database:** MongoDB Atlas
 
 ## Search Implementation Summary
 
-Implemented full-text search across customer name and phone number fields using MongoDB regex queries with case-insensitive matching. The search functionality works seamlessly alongside all filters and sorting options, maintaining state across pagination. Debouncing is applied on the frontend to optimize API calls during user input.
+Search works across customer names and phone numbers. I used MongoDB regex queries with case-insensitive matching so it finds results regardless of how you type. The search term gets debounced on the frontend (500ms delay) to avoid hammering the API while someone's still typing. It plays nice with filters and sorting - everything stays in sync.
 
 ## Filter Implementation Summary
 
-Multi-select filtering is implemented for customer region, gender, product category, tags, and payment method. Age range filtering supports min/max values. Date range filtering allows start and end date selection. All filters work independently and in combination, with query conditions built dynamically on the backend. Filter state persists across search and sort operations.
+You can filter by multiple things at once - customer region, gender, age range, product categories, tags, and payment methods. I built it so each filter can work alone or combined with others. The backend constructs the MongoDB query dynamically based on whatever filters are active. Age uses min/max range, dates use start/end, and the rest are multi-select checkboxes. Filter state sticks around when you search or sort.
 
 ## Sorting Implementation Summary
 
-Sorting is available for date (newest first by default), quantity, and customer name (A-Z). Sort operations are performed at the database level using MongoDB's sort method, ensuring efficiency with large datasets. Active filters and search terms are preserved when sorting is applied.
+Three sort options: date (newest first is default), quantity, and customer name alphabetically. Sorting happens in MongoDB before pagination kicks in, which keeps things fast even with lots of records. When you change the sort, your active filters and search don't get cleared.
 
 ## Pagination Implementation Summary
 
-Pagination displays 10 items per page with next/previous navigation and numbered page buttons. The current page, total pages, and record count are tracked and displayed. All active search, filter, and sort states are maintained when navigating between pages. Skip and limit operations are handled on the backend for optimal performance.
+Shows 10 records per page with previous/next buttons plus numbered pages. I calculate which page numbers to show based on where you are (shows 5 at a time with ellipsis for gaps). The backend uses skip/limit for efficiency. Page state, filters, search, and sort all work together without conflicts.
 
 ## Setup Instructions
 
-**Prerequisites:** Node.js (v16+), MongoDB Atlas account or local MongoDB
+**What you need:** Node.js v16 or higher, MongoDB Atlas account (or local MongoDB)
 
-**Backend Setup:**
+**Backend:**
 ```bash
 cd backend
 npm install
 ```
 
-Create `.env` file in backend directory:
+Make a `.env` file in the backend folder:
 ```
 MONGODB_URI=your_mongodb_connection_string
 NODE_ENV=development
 PORT=5000
 ```
 
-Start backend server:
+Run it:
 ```bash
 npm start
 ```
 
-**Frontend Setup:**
+**Frontend:**
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173`
+Open `http://localhost:5173` in your browser.
 
-**Database Seeding (Optional):**
+**Add sample data (optional):**
 ```bash
 cd backend
 npm run seed
 ```
 
-For detailed deployment instructions, see `DEPLOYMENT.md`
+This adds 12 test records so you can try out the features right away.
