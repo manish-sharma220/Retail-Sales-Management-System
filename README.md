@@ -34,14 +34,14 @@ cd backend
 npm install
 ```
 
-Make a `.env` file in the backend folder:
-```
-MONGODB_URI=your_mongodb_connection_string
+Create a `.env` file in the backend folder with your MongoDB connection:
+```env
+MONGODB_URI=mongodb+srv://your_username:your_password@your_cluster.mongodb.net/retail_sales
 NODE_ENV=development
 PORT=5000
 ```
 
-Run it:
+Start the server:
 ```bash
 npm start
 ```
