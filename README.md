@@ -53,12 +53,4 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` in your browser.
-
-**Add sample data (optional):**
-```bash
-cd backend
-npm run seed
-```
-
-This adds 12 test records so you can try out the features right away.
+Open `http://localhost:5173` in your browser and you're good to go.
