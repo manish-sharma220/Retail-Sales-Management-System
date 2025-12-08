@@ -10,11 +10,11 @@ A web app I built for managing retail sales transactions. It lets you search thr
 
 ## Search Implementation Summary
 
-Search works across customer names and phone numbers. I used MongoDB regex queries with case-insensitive matching so it finds results regardless of how you type. The search term gets debounced on the frontend (500ms delay) to avoid hammering the API while someone's still typing. It plays nice with filters and sorting - everything stays in sync.
+Search works across customer names and phone numbers using MongoDB regex queries. Added case-insensitive matching so it doesn't matter how you type. Debounced the search input (500ms) because hitting the API on every keystroke seemed wasteful. Works fine with filters and sorting active.
 
 ## Filter Implementation Summary
 
-You can filter by multiple things at once - customer region, gender, age range, product categories, tags, and payment methods. I built it so each filter can work alone or combined with others. The backend constructs the MongoDB query dynamically based on whatever filters are active. Age uses min/max range, dates use start/end, and the rest are multi-select checkboxes. Filter state sticks around when you search or sort.
+Multiple filters available - region, gender, age range, categories, tags, payment methods. Each works independently or you can stack them. Backend builds the query dynamically based on active filters. Age and date use ranges, everything else is multi-select. State persists across searches and sorts.
 
 ## Sorting Implementation Summary
 

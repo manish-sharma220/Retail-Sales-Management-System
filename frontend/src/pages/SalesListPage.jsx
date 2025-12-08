@@ -26,6 +26,11 @@ export default function SalesListPage() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
+  const [summary, setSummary] = useState({
+    totalUnits: 0,
+    totalAmount: 0,
+    totalDiscount: 0
+  });
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 
@@ -58,12 +63,25 @@ export default function SalesListPage() {
       const response = await saleService.getSales(params);
       setSales(response.data);
       setPagination(response.pagination);
+      
+      calculateSummary(response.data);
     } catch (err) {
       setError('Failed to load sales data. Please try again.');
       console.error('Error fetching sales:', err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateSummary = (salesData) => {
+    const totalUnits = salesData.reduce((sum, sale) => sum + (sale.quantity || 0), 0);
+    const totalAmount = salesData.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
+    const totalDiscount = salesData.reduce((sum, sale) => {
+      const discount = (sale.totalAmount || 0) - (sale.finalAmount || 0);
+      return sum + discount;
+    }, 0);
+
+    setSummary({ totalUnits, totalAmount, totalDiscount });
   };
 
   const handleFilterChange = (newFilters) => {
@@ -105,72 +123,89 @@ export default function SalesListPage() {
   return (
     <div className="sales-list-page">
       <header className="page-header">
-        <h1>Retail Sales Management</h1>
-        {pagination && (
-          <div className="record-count">
-            Showing {sales.length} of {pagination.totalRecords} records
-          </div>
-        )}
-      </header>
-
-      <div className="controls-section">
+        <h1>Sales Management System</h1>
         <SearchBar 
           value={searchTerm} 
           onChange={handleSearchChange}
-          placeholder="Search by customer name or phone number..."
+          placeholder="Name, Phone no..."
+        />
+      </header>
+
+      <div className="filters-row">
+        <FilterPanel
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
         />
         
-        <div className="sort-control">
+        <div className="sort-dropdown">
           <label>Sort by:</label>
           <select 
-            value={sortBy} 
-            onChange={(e) => handleSort(e.target.value, sortOrder)}
-            className="sort-select"
+            value={`${sortBy}-${sortOrder}`}
+            onChange={(e) => {
+              const [field, order] = e.target.value.split('-');
+              handleSort(field, order);
+            }}
           >
-            <option value="date">Date (Newest First)</option>
-            <option value="quantity">Quantity</option>
-            <option value="customer">Customer Name (A-Z)</option>
+            <option value="customer-asc">Customer Name (A-Z)</option>
+            <option value="customer-desc">Customer Name (Z-A)</option>
+            <option value="date-desc">Date (Newest First)</option>
+            <option value="date-asc">Date (Oldest First)</option>
+            <option value="quantity-desc">Quantity (High to Low)</option>
+            <option value="quantity-asc">Quantity (Low to High)</option>
           </select>
         </div>
       </div>
 
-      <div className="main-content">
-        <aside className="filters-sidebar">
-          <FilterPanel
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            onClearFilters={handleClearFilters}
-          />
-        </aside>
-
-        <main className="content-area">
-          {error && (
-            <div className="error-message">
-              {error}
-            </div>
-          )}
-
-          {loading ? (
-            <div className="loading-spinner">Loading...</div>
-          ) : (
-            <>
-              <SalesTable
-                sales={sales}
-                sortBy={sortBy}
-                sortOrder={sortOrder}
-                onSort={handleSort}
-              />
-              {pagination && (
-                <Pagination
-                  currentPage={pagination.currentPage}
-                  totalPages={pagination.totalPages}
-                  onPageChange={handlePageChange}
-                />
-              )}
-            </>
-          )}
-        </main>
+      <div className="summary-cards">
+        <div className="summary-card">
+          <div className="summary-label">
+            Total units sold
+            <span className="info-icon">ⓘ</span>
+          </div>
+          <div className="summary-value">{summary.totalUnits}</div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-label">
+            Total Amount
+            <span className="info-icon">ⓘ</span>
+          </div>
+          <div className="summary-value">₹{summary.totalAmount.toLocaleString()} ({sales.length} SRs)</div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-label">
+            Total Discount
+            <span className="info-icon">ⓘ</span>
+          </div>
+          <div className="summary-value">₹{summary.totalDiscount.toLocaleString()} ({sales.length} SRs)</div>
+        </div>
       </div>
+
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="loading-spinner">Loading...</div>
+      ) : (
+        <>
+          <SalesTable
+            sales={sales}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+          />
+          {pagination && (
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }

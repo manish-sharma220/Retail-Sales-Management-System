@@ -25,9 +25,9 @@ Helper stuff like validation functions and the database seeding script.
 
 ### How queries work
 
-When filters come in, the service builds a MongoDB query object piece by piece. Text search uses regex with the 'i' flag for case-insensitive matching. Multi-select filters use MongoDB's `$in` operator. Range filters (age, dates) use `$gte` and `$lte`. Everything combines with AND logic automatically.
+Service builds MongoDB queries incrementally as filters come in. Text search uses regex with case-insensitive flag. Multi-select uses `$in` operator. Ranges use `$gte`/`$lte`. Everything ANDs together by default.
 
-I put indexes on the fields that get searched and filtered most. Without them, queries would slow down as data grows.
+Added indexes on frequently queried fields - otherwise performance tanks with more data.
 
 ### Sorting approach
 
